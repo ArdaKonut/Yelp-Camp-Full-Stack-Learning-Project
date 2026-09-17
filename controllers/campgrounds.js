@@ -46,7 +46,8 @@ module.exports.showCampground = async (req, res) => {
             path: 'author'
         }
     }).populate('author');
-    // console.log(campground.geometry)
+    console.log('Campground: ', campground);
+    console.log('Author: ', campground.author);
     if(!campground){
         req.flash('error', 'Cannot find that campground');
         return res.redirect('/campgrounds');
@@ -67,8 +68,20 @@ module.exports.renderEditForm = async(req, res) => {
 module.exports.updateCampground = async(req, res) => {
     const { id } = req.params;
     console.log(req.body);
-    const campground = await Campground.findByIdAndUpdate(id, { ...req.body.campground });
-    const imgs = req.files.map(f => ({url: f.path, filename: f.filename }));
+    const campground = await Campground.findByIdAndUpdate(
+        id,
+        { ...req.body.campground });
+    // const imgs = req.files.map(f => ({url: f.path, filename: f.filename }));
+    // Uploading to Cloudinary is asynchronous. Promise.all() waits until all uploads have completed.
+    // Only then we receive all CloudinaryResult(s) and extract 'result.secure_url' and 'result.public_id'
+    const uploadResults = await Promise.all(
+        req.files.map(file => uploadImage(file.buffer))
+    );
+    const imgs = uploadResults.map(result => ({
+        url: result.secure_url,
+        filename: result.public_id
+    }));
+
     campground.images.push(...imgs);
     await campground.save();
     // $pull: That's how we pull elements out of an array!
@@ -76,8 +89,15 @@ module.exports.updateCampground = async(req, res) => {
         for (let filename of req.body.deleteImages){
             await cloudinary.uploader.destroy(filename);
         }
-        await campground.updateOne({$pull: { images: { filename: { $in: req.body.deleteImages} } } })
-    }
+        await campground.updateOne({$pull: {
+            images: {
+                filename: {
+                    $in: req.body.deleteImages
+                }
+            }
+        }
+    })
+}
     req.flash('success', 'Successfully updated campground!');
     res.redirect(`/campgrounds/${campground._id}`)
 

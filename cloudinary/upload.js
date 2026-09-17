@@ -1,4 +1,13 @@
 const cloudinary = require('./index');
+/**
+ * req.files[].buffer
+ *         ↓
+ * uploadImage()
+ *         ↓
+ * Cloudinary
+ *         ↓
+ * Cloudinary stores actual image
+ */
 
 module.exports.uploadImage = (fileBuffer) => {
     return new Promise((resolve, reject) => {

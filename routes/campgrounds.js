@@ -7,6 +7,7 @@ const campgrounds = require('../controllers/campgrounds');
 
 const multer = require('multer');
 // const { storage } = require('../cloudinary');
+// When an image arrives, temporarily keep its binary contents in memory.
 const storage = multer.memoryStorage();
 
 const upload = multer({ 
